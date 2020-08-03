@@ -18,7 +18,8 @@ app.post("/urls", (req, res) => {
 });
 
 function generateRandomString() {
-
+  let id = Math.random().toString(36).slice(7);
+  console.log(id);
 }
 
 app.get("/", (req, res) => {
