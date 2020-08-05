@@ -32,9 +32,9 @@ const generateRandomString = () => {
 const emailLookUp = (email) => {
   for (let user in users) {
     if (users[user].email === email) {
-      return false;
+      return user;
     }
-  } return true;
+  } return false;
 };
 
 app.use(bodyParser.urlencoded({extended: true}));
@@ -96,14 +96,14 @@ app.post("/register", (req, res) => {
   if (emailInput === "" || passwordInput === "") {
     res.send("Error 400");
   } else {
-    if (emailLookUp(emailInput)) {
-      const username = generateRandomString();
-      users[username] = {
-        id: username,
+    if (!emailLookUp(emailInput)) {
+      const newId = generateRandomString();
+      users[newId] = {
+        id: newId,
         email: emailInput,
         password: passwordInput
       };
-      res.cookie('user_id', username);
+      res.cookie('user_id', newId);
       res.redirect("/urls");
     } else {
       res.send("Error 400");
@@ -119,19 +119,18 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const emailInput = req.body.email;
   const passwordInput = req.body.password;
-  if(emailLookUp(emailInput)) {
-    res.send("Error 403");
-  } else {
-    for(let user in users) {
-      if (users[user].email === emailInput){
-      if (users[user].password === passwordInput) {
-        res.cookie('user_id', users[user].id);
-        res.redirect("/urls");
-      } else {
-        res.send("Error 403");
-        }
-      }
+  if (emailLookUp(emailInput)) {
+    let user = emailLookUp(emailInput);
+    if (users[user].password === passwordInput) {
+      res.cookie('user_id', users[user].id);
+      res.redirect("/urls");
+    } else {
+      console.log("Password is incorrect");
+      res.send("Error 403");
     }
+  } else {
+    console.log("Email is incorrect");
+    res.send("Error 403");
   }
 });
 
