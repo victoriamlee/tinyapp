@@ -24,11 +24,18 @@ const users = {
   }
 }
 
-function generateRandomString() {
+const generateRandomString = () => {
   let id = Math.random().toString(36).slice(2,8);
   return id;
 }
 
+const emailLookUp = (email) => {
+  for (let user in users) {
+    if (users[user].email === email) {
+    return false;
+    }
+  } return true;
+};
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
@@ -84,6 +91,8 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
+  const email = req.body.email;
+  if (emailLookUp(email)) {
   const username = generateRandomString();
   users[username] = { 
     id: username, 
@@ -92,6 +101,9 @@ app.post("/register", (req, res) => {
   };
   res.cookie('user_id', username);
   res.redirect("/urls")
+  } else {
+    res.send("Error 400");
+  }
 });
 
 app.post("/login", (req, res) => {
@@ -100,7 +112,7 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect("/urls");
 });
 
