@@ -11,28 +11,28 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
-const users = { 
+const users = {
   "userRandomID": {
-    id: "userRandomID", 
-    email: "user@example.com", 
+    id: "userRandomID",
+    email: "user@example.com",
     password: "purple-monkey-dinosaur"
   },
- "user2RandomID": {
-    id: "user2RandomID", 
-    email: "user2@example.com", 
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
     password: "dishwasher-funk"
   }
-}
+};
 
 const generateRandomString = () => {
   let id = Math.random().toString(36).slice(2,8);
   return id;
-}
+};
 
 const emailLookUp = (email) => {
   for (let user in users) {
     if (users[user].email === email) {
-    return false;
+      return false;
     }
   } return true;
 };
@@ -57,7 +57,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { user: users[req.cookies.user_id] }
+  let templateVars = { user: users[req.cookies.user_id] };
   res.render("urls_new", templateVars);
 });
 
@@ -91,18 +91,23 @@ app.get("/register", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  const email = req.body.email;
-  if (emailLookUp(email)) {
-  const username = generateRandomString();
-  users[username] = { 
-    id: username, 
-    email: req.body.email, 
-    password: req.body.password 
-  };
-  res.cookie('user_id', username);
-  res.redirect("/urls")
-  } else {
+  const emailInput = req.body.email;
+  const passwordInput = req.body.password;
+  if (emailInput === "" || passwordInput === "") {
     res.send("Error 400");
+  } else {
+    if (emailLookUp(emailInput)) {
+      const username = generateRandomString();
+      users[username] = {
+        id: username,
+        email: emailInput,
+        password: passwordInput
+      };
+      res.cookie('user_id', username);
+      res.redirect("/urls");
+    } else {
+      res.send("Error 400");
+    }
   }
 });
 
