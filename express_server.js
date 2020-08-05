@@ -7,8 +7,8 @@ const PORT = 8080; // default port 8080
 app.set("view engine", "ejs");
 
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { longURL: "https://www.tsn.ca", userID: "userRandomID" },
+  i3BoGr: { longURL: "https://www.google.ca", userID: "user2RandomID" }
 };
 
 const users = {
@@ -57,8 +57,12 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { user: users[req.cookies.user_id] };
+  if (req.cookies.user_id) {
+    let templateVars = { user: users[req.cookies.user_id] };
   res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/urls");
+  }
 });
 
 app.get("/urls/:shortURL", (req, res) => {
@@ -94,7 +98,7 @@ app.post("/register", (req, res) => {
   const emailInput = req.body.email;
   const passwordInput = req.body.password;
   if (emailInput === "" || passwordInput === "") {
-    res.send("Error 400");
+    res.status(400).json({error:"Password or email can't be blank"});
   } else {
     if (!emailLookUp(emailInput)) {
       const newId = generateRandomString();
@@ -106,7 +110,7 @@ app.post("/register", (req, res) => {
       res.cookie('user_id', newId);
       res.redirect("/urls");
     } else {
-      res.send("Error 400");
+      res.status(400).json({error:"Email already exists"});
     }
   }
 });
@@ -126,11 +130,11 @@ app.post("/login", (req, res) => {
       res.redirect("/urls");
     } else {
       console.log("Password is incorrect");
-      res.send("Error 403");
+      res.status(403).json({error:"Email or password is incorrect"});
     }
   } else {
     console.log("Email is incorrect");
-    res.send("Error 403");
+    res.status(403).json({error:"Email or password is incorrect"});
   }
 });
 
