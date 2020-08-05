@@ -111,9 +111,28 @@ app.post("/register", (req, res) => {
   }
 });
 
+app.get("/login", (req, res) => {
+  let templateVars = { user: users[req.cookies.user_id] };
+  res.render("urls_login", templateVars);
+});
+
 app.post("/login", (req, res) => {
-  res.cookie('username', req.body.username);
-  res.redirect("/urls");
+  const emailInput = req.body.email;
+  const passwordInput = req.body.password;
+  if(emailLookUp(emailInput)) {
+    res.send("Error 403");
+  } else {
+    for(let user in users) {
+      if (users[user].email === emailInput){
+      if (users[user].password === passwordInput) {
+        res.cookie('user_id', users[user].id);
+        res.redirect("/urls");
+      } else {
+        res.send("Error 403");
+        }
+      }
+    }
+  }
 });
 
 app.post("/logout", (req, res) => {
