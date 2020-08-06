@@ -61,13 +61,21 @@ const urlsForUser = (id) => {
 };
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  if (req.session.user_id) {
+    res.redirect("/urls")
+  } else {
+    res.redirect("/login");
+  }
 });
 
 app.get("/urls", (req, res) => {
+  if (!req.session.user_id) {
+    res.status(403).json({Error:"Please login or register!"});
+  } else {
     let links = urlsForUser(req.session.user_id);
     let templateVars = { user: users[req.session.user_id], urls: links };
     res.render("urls_index", templateVars);
+  }
 });
 
 app.post("/urls", (req, res) => {
@@ -88,25 +96,33 @@ app.get("/urls/new", (req, res) => {
     let templateVars = { user: users[req.session.user_id] };
     res.render("urls_new", templateVars);
   } else {
-    res.redirect("/urls");
+    res.redirect("/login");
   }
 });
 
 app.get("/urls/:id", (req, res) => {
-  let templateVars = { currentUser: req.session.user_id, user: users[req.session.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL, userID: urlDatabase[req.params.id].userID };
-  res.render("urls_show", templateVars);
+  if (!req.session.user_id) {
+    res.status(403).json({Error:"Please login or register!"});
+  } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
+    res.status(403).json({Error:"Can't access this page!"});
+  } else {
+    let templateVars = { user: users[req.session.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
+    res.render("urls_show", templateVars);
+  }
 });
 
 app.post("/urls/:id", (req, res) => {
-  if (req.session.user_id === urlDatabase[req.params.id].userID) {
+  if (!req.session.user_id) {
+    res.status(403).json({Error:"Please login or register!"});
+  } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
+    res.status(403).json({Error:"Can't access this page!"});
+  } else {
     let longURLInput = req.body.longURL
     if (!longURLInput.startsWith("http://") || !longURLInput.startsWith("https://")) {
       longURLInput = "http://" + longURLInput;  
   } 
     urlDatabase[req.params.id].longURL = longURLInput;
-    res.redirect(`/urls/${req.params.id}`);
-  } else {
-    res.redirect(`/urls/${req.params.id}`);
+    res.redirect("/urls/");
   }
 });
 
@@ -119,17 +135,17 @@ app.post("/urls/:id/delete", (req, res) => {
     delete urlDatabase[req.params.id];
     res.redirect("/urls");
   } else {
-    res.redirect("/urls");
+    res.status(403).json({Error:"Can't access this page!"});
   }
 });
 
-app.post("/urls/:id/edit", (req, res) => {
-  res.redirect(`/urls/${req.params.id}`);
-});
-
 app.get("/register", (req, res) => {
-  let templateVars = { user: users[req.session.user_id] };
-  res.render("urls_register", templateVars);
+  if (req.session.user_id) {
+    res.redirect("/urls");
+  } else {
+    let templateVars = { user: users[req.session.user_id] };
+    res.render("urls_register", templateVars);
+  }
 });
 
 app.post("/register", (req, res) => {
@@ -155,8 +171,12 @@ app.post("/register", (req, res) => {
 });
 
 app.get("/login", (req, res) => {
-  let templateVars = { user: users[req.session.user_id] };
-  res.render("urls_login", templateVars);
+  if (req.session.user_id) {
+    res.redirect("/urls");
+  } else {
+    let templateVars = { user: users[req.session.user_id] };
+    res.render("urls_login", templateVars);
+  }
 });
 
 app.post("/login", (req, res) => {
