@@ -32,7 +32,7 @@ const users = {
   }
 };
 
-// Redirects to urls page if logged in, else redirects to login page 
+// Redirects to urls page if logged in, else redirects to login page
 app.get("/", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
@@ -57,13 +57,13 @@ app.post("/urls", (req, res) => {
   if (!req.session.user_id) {
     res.status(403).json({Error:"Please login or register!"});
   } else {
-  let longURLInput = createURL(req.body.longURL);
-  const shortURL = generateRandomString();
-  urlDatabase[shortURL] = {
-    longURL: longURLInput,
-    userID: req.session.user_id
-  }
-  res.redirect(`/urls/${shortURL}`);
+    let longURLInput = createURL(req.body.longURL);
+    const shortURL = generateRandomString();
+    urlDatabase[shortURL] = {
+      longURL: longURLInput,
+      userID: req.session.user_id
+    };
+    res.redirect(`/urls/${shortURL}`);
   }
 });
 
