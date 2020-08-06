@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const cookieParser = require('cookie-parser');
+const bcrypt = require('bcrypt');
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
@@ -128,20 +129,21 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const emailInput = req.body.email;
   const passwordInput = req.body.password;
+  const hashedPassword = bcrypt.hashSync(passwordInput, 10);
   if (emailInput === "" || passwordInput === "") {
-    res.status(400).json({error:"Password or email can't be blank"});
+    res.status(400).json({Error:"Password or email can't be blank"});
   } else {
     if (!emailLookUp(emailInput)) {
       const newId = generateRandomString();
       users[newId] = {
         id: newId,
         email: emailInput,
-        password: passwordInput
+        password: hashedPassword
       };
       res.cookie('user_id', newId);
       res.redirect("/urls");
     } else {
-      res.status(400).json({error:"Email already exists"});
+      res.status(400).json({Error:"Email already exists"});
     }
   }
 });
@@ -156,16 +158,16 @@ app.post("/login", (req, res) => {
   const passwordInput = req.body.password;
   if (emailLookUp(emailInput)) {
     let user = emailLookUp(emailInput);
-    if (users[user].password === passwordInput) {
+    if (bcrypt.compareSync(passwordInput, users[user].password)) {
       res.cookie('user_id', users[user].id);
       res.redirect("/urls");
     } else {
       console.log("Password is incorrect");
-      res.status(403).json({error:"Email or password is incorrect"});
+      res.status(403).json({Error:"Email or password is incorrect"});
     }
   } else {
     console.log("Email is incorrect");
-    res.status(403).json({error:"Email or password is incorrect"});
+    res.status(403).json({Error:"Email or password is incorrect"});
   }
 });
 
