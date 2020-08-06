@@ -37,6 +37,19 @@ const emailLookUp = (email) => {
   } return false;
 };
 
+const urlsForUser = (id) => {
+  let filteredData = {};
+  if (!id){
+    return false
+  } else {
+    for (let short in urlDatabase) {
+      if (urlDatabase[short].userID === id){
+        filteredData[short] = urlDatabase[short];
+      }
+    }     
+  } return filteredData;
+};
+
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(cookieParser());
 
@@ -45,44 +58,62 @@ app.get("/", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { user: users[req.cookies.user_id], urls: urlDatabase };
-  res.render("urls_index", templateVars);
+    let links = urlsForUser(req.cookies.user_id);
+    let templateVars = { user: users[req.cookies.user_id], urls: links };
+    res.render("urls_index", templateVars);
 });
 
 app.post("/urls", (req, res) => {
-  const longURL = req.body.longURL;
+  let longURL = req.body.longURL;
+  if (!longURL.startsWith("http://") || !longURL.startsWith("https://")) {
+    longURL = "http://" + longURL;
+  } 
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = longURL;
+  urlDatabase[shortURL] = { 
+    longURL: longURL, 
+    userID: req.cookies.user_id
+  };
   res.redirect(`/urls/${shortURL}`);
 });
 
 app.get("/urls/new", (req, res) => {
   if (req.cookies.user_id) {
     let templateVars = { user: users[req.cookies.user_id] };
-  res.render("urls_new", templateVars);
+    res.render("urls_new", templateVars);
   } else {
     res.redirect("/urls");
   }
 });
 
-app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { user: users[req.cookies.user_id], shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+app.get("/urls/:id", (req, res) => {
+  let templateVars = { user: users[req.cookies.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
   res.render("urls_show", templateVars);
 });
 
-app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
+app.get("/u/:id", (req, res) => {
+  res.redirect(urlDatabase[req.params.id].longURL);
 });
 
-app.post("/urls/:shortURL/delete", (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect("/urls");
+app.post("/urls/:id/delete", (req, res) => {
+  if (req.cookies.user_id === urlDatabase[req.params.id].userID) {
+    delete urlDatabase[req.params.id];
+    res.redirect("/urls");
+  } else {
+    res.redirect("/urls");
+  }
 });
 
 app.post("/urls/:id", (req, res) => {
-  urlDatabase[req.params.id] = req.body.longURL;
-  res.redirect(`/urls/${req.params.id}`);
+  if (req.cookies.user_id === urlDatabase[req.params.id].userID) {
+    let longURLInput = req.body.longURL
+    if (!longURLInput.startsWith("http://") || !longURLInput.startsWith("https://")) {
+      longURLInput = "http://" + longURLInput;  
+  } 
+    urlDatabase[req.params.id].longURL = longURLInput;
+    res.redirect(`/urls/${req.params.id}`);
+  } else {
+    res.redirect(`/urls/${req.params.id}`);
+  }
 });
 
 app.post("/urls/:id/edit", (req, res) => {
