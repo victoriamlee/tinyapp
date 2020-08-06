@@ -44,7 +44,7 @@ app.get("/urls", (req, res) => {
   if (!req.session.user_id) {
     res.status(403).json({Error:"Please login or register!"});
   } else {
-    let links = urlsForUser(req.session.user_id);
+    let links = urlsForUser(req.session.user_id, urlDatabase);
     let templateVars = { user: users[req.session.user_id], urls: links };
     res.render("urls_index", templateVars);
   }
@@ -127,7 +127,7 @@ app.post("/register", (req, res) => {
   if (emailInput === "" || passwordInput === "") {
     res.status(400).json({Error:"Password or email can't be blank"});
   } else {
-    if (!emailLookUp(emailInput)) {
+    if (!emailLookUp(emailInput, users)) {
       const newId = generateRandomString();
       users[newId] = {
         id: newId,
@@ -154,7 +154,7 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const emailInput = req.body.email;
   const passwordInput = req.body.password;
-  if (emailLookUp(emailInput)) {
+  if (emailLookUp(emailInput, users)) {
     let user = getUserByEmail(emailInput, users);
     if (bcrypt.compareSync(passwordInput, users[user].password)) {
       req.session['user_id'] = users[user].id;
