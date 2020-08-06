@@ -32,6 +32,7 @@ const users = {
   }
 };
 
+// Redirects to urls page if logged in, else redirects to login page 
 app.get("/", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
@@ -40,6 +41,7 @@ app.get("/", (req, res) => {
   }
 });
 
+// Displays urls page if logged in
 app.get("/urls", (req, res) => {
   if (!req.session.user_id) {
     res.status(403).json({Error:"Please login or register!"});
@@ -50,16 +52,22 @@ app.get("/urls", (req, res) => {
   }
 });
 
+// Generates a short URL, saves it, and associates it with the user if the user is logged in
 app.post("/urls", (req, res) => {
+  if (!req.session.user_id) {
+    res.status(403).json({Error:"Please login or register!"});
+  } else {
   let longURLInput = createURL(req.body.longURL);
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
     longURL: longURLInput,
     userID: req.session.user_id
-  };
+  }
   res.redirect(`/urls/${shortURL}`);
+  }
 });
 
+// Displays "create new url" page if logged in, else redirects to login page
 app.get("/urls/new", (req, res) => {
   if (req.session.user_id) {
     let templateVars = { user: users[req.session.user_id] };
@@ -69,6 +77,7 @@ app.get("/urls/new", (req, res) => {
   }
 });
 
+// Displays "short url" page if logged in and owns the URL for the given ID
 app.get("/urls/:id", (req, res) => {
   if (!req.session.user_id) {
     res.status(403).json({Error:"Please login or register!"});
@@ -80,6 +89,7 @@ app.get("/urls/:id", (req, res) => {
   }
 });
 
+// Updates the URL and redirects to urls page if the user is logged in and owns the URL for the given ID
 app.post("/urls/:id", (req, res) => {
   if (!req.session.user_id) {
     res.status(403).json({Error:"Please login or register!"});
@@ -92,8 +102,8 @@ app.post("/urls/:id", (req, res) => {
   }
 });
 
+//  Redirects to corresponding long URL if the URL exists
 app.get("/u/:id", (req, res) => {
-// if the URL doesn't exist
   if (!urlDatabase[req.params.id].longURL) {
     res.status(403).json({Error: "URL doesn't exist!"});
   } else {
@@ -101,8 +111,9 @@ app.get("/u/:id", (req, res) => {
   }
 });
 
+// Deletes the URL if user is logged in and owns the URL for the given ID
 app.post("/urls/:id/delete", (req, res) => {
-// if the user is logged in and owns the URL for the given ID
+// Checks if the user is logged in and owns the URL for the given ID
   if (req.session.user_id === urlDatabase[req.params.id].userID) {
     delete urlDatabase[req.params.id];
     res.redirect("/urls");
@@ -111,6 +122,7 @@ app.post("/urls/:id/delete", (req, res) => {
   }
 });
 
+// Displays register page if user is not logged in
 app.get("/register", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
@@ -120,6 +132,7 @@ app.get("/register", (req, res) => {
   }
 });
 
+// Creates new user, encrypt's password with bcrypt, sets a cookie, and redirects to urls page
 app.post("/register", (req, res) => {
   const emailInput = req.body.email;
   const passwordInput = req.body.password;
@@ -142,6 +155,7 @@ app.post("/register", (req, res) => {
   }
 });
 
+// Displays login page if user is not logged in
 app.get("/login", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
@@ -151,6 +165,7 @@ app.get("/login", (req, res) => {
   }
 });
 
+// Sets cookie and redirects to urls page if email and password match existing user
 app.post("/login", (req, res) => {
   const emailInput = req.body.email;
   const passwordInput = req.body.password;
@@ -169,6 +184,7 @@ app.post("/login", (req, res) => {
   }
 });
 
+// Deletes cookie and redirects to urls page
 app.post("/logout", (req, res) => {
   req.session['user_id'] = null;
   res.redirect("/urls");
