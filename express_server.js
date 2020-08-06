@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
 const PORT = 8080;
-const getUserByEmail = require('./helpers');
+const { generateRandomString, emailLookUp, urlsForUser, getUserByEmail, createURL } = require('./helpers');
 
 app.set("view engine", "ejs");
 
@@ -32,34 +32,6 @@ const users = {
   }
 };
 
-const generateRandomString = () => {
-  let id = Math.random().toString(36).slice(2,8);
-  return id;
-};
-
-// Confirms if email exists
-const emailLookUp = (email) => {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return true;
-    }
-  } return false;
-};
-
-// Finds urls that are associated with the user
-const urlsForUser = (id) => {
-  let filteredData = {};
-  if (!id) {
-    return false;
-  } else {
-    for (let short in urlDatabase) {
-      if (urlDatabase[short].userID === id) {
-        filteredData[short] = urlDatabase[short];
-      }
-    }
-  } return filteredData;
-};
-
 app.get("/", (req, res) => {
   if (req.session.user_id) {
     res.redirect("/urls");
@@ -79,13 +51,10 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  let longURL = req.body.longURL;
-  if (!longURL.startsWith("http://") || !longURL.startsWith("https://")) {
-    longURL = "http://" + longURL;
-  }
+  let longURLInput = createURL(req.body.longURL);
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = {
-    longURL: longURL,
+    longURL: longURLInput,
     userID: req.session.user_id
   };
   res.redirect(`/urls/${shortURL}`);
@@ -117,17 +86,15 @@ app.post("/urls/:id", (req, res) => {
   } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
     res.status(403).json({Error:"Can't access this page!"});
   } else {
-    let longURLInput = req.body.longURL;
-    if (!longURLInput.startsWith("http://") || !longURLInput.startsWith("https://")) {
-      longURLInput = "http://" + longURLInput;
-    }
+    let longURLInput = createURL(req.body.longURL);
     urlDatabase[req.params.id].longURL = longURLInput;
     res.redirect("/urls/");
   }
 });
 
 app.get("/u/:id", (req, res) => {
-  if (!urlDatabase[req.params.id]) {
+// if the URL doesn't exist
+  if (!urlDatabase[req.params.id].longURL) {
     res.status(403).json({Error: "URL doesn't exist!"});
   } else {
     res.redirect(urlDatabase[req.params.id].longURL);
@@ -135,6 +102,7 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.post("/urls/:id/delete", (req, res) => {
+// if the user is logged in and owns the URL for the given ID
   if (req.session.user_id === urlDatabase[req.params.id].userID) {
     delete urlDatabase[req.params.id];
     res.redirect("/urls");
