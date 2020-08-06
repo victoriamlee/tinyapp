@@ -1,16 +1,14 @@
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
-const cookieParser = require('cookie-parser');
-const cookieSession = require("cookie-session")
+const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
-const PORT = 8080; 
+const PORT = 8080;
 const getUserByEmail = require('./helpers');
 
 app.set("view engine", "ejs");
 
 app.use(bodyParser.urlencoded({extended: true}));
-// app.use(cookieParser());
 app.use(cookieSession({
   name: "session",
   keys: ['hello', 'there']
@@ -39,30 +37,32 @@ const generateRandomString = () => {
   return id;
 };
 
+// Confirms if email exists
 const emailLookUp = (email) => {
-  for(let user in users) {
+  for (let user in users) {
     if (users[user].email === email) {
       return true;
     }
   } return false;
 };
 
+// Finds urls that are associated with the user
 const urlsForUser = (id) => {
   let filteredData = {};
-  if (!id){
-    return false
+  if (!id) {
+    return false;
   } else {
     for (let short in urlDatabase) {
-      if (urlDatabase[short].userID === id){
+      if (urlDatabase[short].userID === id) {
         filteredData[short] = urlDatabase[short];
       }
-    }     
+    }
   } return filteredData;
 };
 
 app.get("/", (req, res) => {
   if (req.session.user_id) {
-    res.redirect("/urls")
+    res.redirect("/urls");
   } else {
     res.redirect("/login");
   }
@@ -82,10 +82,10 @@ app.post("/urls", (req, res) => {
   let longURL = req.body.longURL;
   if (!longURL.startsWith("http://") || !longURL.startsWith("https://")) {
     longURL = "http://" + longURL;
-  } 
+  }
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = { 
-    longURL: longURL, 
+  urlDatabase[shortURL] = {
+    longURL: longURL,
     userID: req.session.user_id
   };
   res.redirect(`/urls/${shortURL}`);
@@ -117,10 +117,10 @@ app.post("/urls/:id", (req, res) => {
   } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
     res.status(403).json({Error:"Can't access this page!"});
   } else {
-    let longURLInput = req.body.longURL
+    let longURLInput = req.body.longURL;
     if (!longURLInput.startsWith("http://") || !longURLInput.startsWith("https://")) {
-      longURLInput = "http://" + longURLInput;  
-  } 
+      longURLInput = "http://" + longURLInput;
+    }
     urlDatabase[req.params.id].longURL = longURLInput;
     res.redirect("/urls/");
   }
@@ -128,9 +128,8 @@ app.post("/urls/:id", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    res.status(403).json({Error: "URL doesn't exist!"})
+    res.status(403).json({Error: "URL doesn't exist!"});
   } else {
-
     res.redirect(urlDatabase[req.params.id].longURL);
   }
 });
