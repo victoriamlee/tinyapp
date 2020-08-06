@@ -127,7 +127,12 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-  res.redirect(urlDatabase[req.params.id].longURL);
+  if (!urlDatabase[req.params.id]) {
+    res.status(403).json({Error: "URL doesn't exist!"})
+  } else {
+
+    res.redirect(urlDatabase[req.params.id].longURL);
+  }
 });
 
 app.post("/urls/:id/delete", (req, res) => {
