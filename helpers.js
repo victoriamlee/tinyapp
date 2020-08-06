@@ -5,7 +5,7 @@ const generateRandomString = () => {
 };
 
 // Confirms if email exists
-const emailLookUp = (email) => {
+const emailLookUp = (email, users) => {
   for (let user in users) {
     if (users[user].email === email) {
       return true;
@@ -14,7 +14,7 @@ const emailLookUp = (email) => {
 };
 
 // Finds urls that are associated with the user
-const urlsForUser = (id) => {
+const urlsForUser = (id, urlDatabase) => {
   let filteredData = {};
   if (!id) {
     return false;
