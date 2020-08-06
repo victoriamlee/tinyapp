@@ -29,11 +29,11 @@ const urlsForUser = (id, urlDatabase) => {
 
 // Loops up if user exists in the database
 const getUserByEmail = function(email, database) {
-  for(let user in database) {
-    if(database[user].email === email) {
+  for (let user in database) {
+    if (database[user].email === email) {
       return user;
     }
-  } 
+  }
 };
 
 // If the longURLInput doesn't start with http://, add it to the beginning
