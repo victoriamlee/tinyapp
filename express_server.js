@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const cookieSession = require("cookie-session");
 const bcrypt = require("bcrypt");
 const PORT = 8080;
-const { generateRandomString, emailLookUp, urlsForUser, getUserByEmail, createURL } = require('./helpers');
+const { generateRandomString, emailLookUp, urlsForUser, getUserByEmail, createURL, userLoggedIn, usersURL } = require('./helpers');
 
 app.set("view engine", "ejs");
 
@@ -32,6 +32,7 @@ const users = {
   }
 };
 
+
 // Redirects to urls page if logged in, else redirects to login page
 app.get("/", (req, res) => {
   if (req.session.user_id) {
@@ -43,8 +44,9 @@ app.get("/", (req, res) => {
 
 // Displays urls page if logged in
 app.get("/urls", (req, res) => {
-  if (!req.session.user_id) {
-    res.status(403).json({Error:"Please login or register!"});
+  if (!userLoggedIn(req)) {
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Please Log In or Register" };
+    res.render("error", templateVars);
   } else {
     let links = urlsForUser(req.session.user_id, urlDatabase);
     let templateVars = { user: users[req.session.user_id], urls: links };
@@ -54,22 +56,20 @@ app.get("/urls", (req, res) => {
 
 // Generates a short URL, saves it, and associates it with the user if the user is logged in
 app.post("/urls", (req, res) => {
-  if (!req.session.user_id) {
-    res.status(403).json({Error:"Please login or register!"});
+  if (!userLoggedIn(req)) {
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Please Log In or Register" };
+    res.render("error", templateVars);
   } else {
     let longURLInput = createURL(req.body.longURL);
     const shortURL = generateRandomString();
-    urlDatabase[shortURL] = {
-      longURL: longURLInput,
-      userID: req.session.user_id
-    };
+    urlDatabase[shortURL] = { longURL: longURLInput, userID: req.session.user_id };
     res.redirect(`/urls/${shortURL}`);
   }
 });
 
 // Displays "create new url" page if logged in, else redirects to login page
 app.get("/urls/new", (req, res) => {
-  if (req.session.user_id) {
+  if (userLoggedIn(req)) {
     let templateVars = { user: users[req.session.user_id] };
     res.render("urls_new", templateVars);
   } else {
@@ -79,13 +79,16 @@ app.get("/urls/new", (req, res) => {
 
 // Displays "short url" page if logged in and owns the URL for the given ID
 app.get("/urls/:id", (req, res) => {
-  if (!req.session.user_id) {
-    res.status(403).json({Error:"Please login or register!"});
-  } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
-    res.status(403).json({Error:"Can't access this page!"});
+  if (!userLoggedIn(req)) {
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Please Log In or Register" };
+    res.render("error", templateVars);
+  } else if (!usersURL(req, urlDatabase)) {
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Can't access this page" };
+    res.render("error", templateVars);
   } else {
     if (!urlDatabase[req.params.id]) {
-      res.status(403).json({Error: "URL doesn't exist!"});
+      let templateVars = { user: users[req.session.user_id], message: "Error 403: URL doesn't exist" };
+      res.render("error", templateVars);
     } else {
       let templateVars = { user: users[req.session.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
       res.render("urls_show", templateVars);
@@ -95,10 +98,12 @@ app.get("/urls/:id", (req, res) => {
 
 // Updates the URL and redirects to urls page if the user is logged in and owns the URL for the given ID
 app.post("/urls/:id", (req, res) => {
-  if (!req.session.user_id) {
-    res.status(403).json({Error:"Please login or register!"});
-  } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
-    res.status(403).json({Error:"Can't access this page!"});
+  if (!userLoggedIn(req)) {
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Please Log In or Register" };
+    res.render("error", templateVars);
+  } else if (!usersURL(req, urlDatabase)) {
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Can't access this page" };
+    res.render("error", templateVars);
   } else {
     let longURLInput = createURL(req.body.longURL);
     urlDatabase[req.params.id].longURL = longURLInput;
@@ -109,7 +114,8 @@ app.post("/urls/:id", (req, res) => {
 //  Redirects to corresponding long URL if the URL exists
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    res.status(403).json({Error: "URL doesn't exist!"});
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: URL doesn't exist" };
+    res.render("error", templateVars);
   } else {
     res.redirect(urlDatabase[req.params.id].longURL);
   }
@@ -117,18 +123,18 @@ app.get("/u/:id", (req, res) => {
 
 // Deletes the URL if user is logged in and owns the URL for the given ID
 app.post("/urls/:id/delete", (req, res) => {
-// Checks if the user is logged in and owns the URL for the given ID
-  if (req.session.user_id === urlDatabase[req.params.id].userID) {
+  if (usersURL(req, urlDatabase)) {
     delete urlDatabase[req.params.id];
     res.redirect("/urls");
   } else {
-    res.status(403).json({Error:"Can't access this page!"});
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Can't access this page" };
+    res.render("error", templateVars);
   }
 });
 
 // Displays register page if user is not logged in
 app.get("/register", (req, res) => {
-  if (req.session.user_id) {
+  if (userLoggedIn(req)) {
     res.redirect("/urls");
   } else {
     let templateVars = { user: users[req.session.user_id] };
@@ -142,9 +148,13 @@ app.post("/register", (req, res) => {
   const passwordInput = req.body.password;
   const hashedPassword = bcrypt.hashSync(passwordInput, 10);
   if (emailInput === "" || passwordInput === "") {
-    res.status(400).json({Error:"Password or email can't be blank"});
+    let templateVars = { user: users[req.session.user_id], message: "Error 400: Password or email can't be blank" };
+    res.render("error", templateVars);
   } else {
-    if (!emailLookUp(emailInput, users)) {
+    if (emailLookUp(emailInput, users)) {
+      let templateVars = { user: users[req.session.user_id], message: "Error 400: Email already exists" };
+      res.render("error", templateVars);
+    } else {
       const newId = generateRandomString();
       users[newId] = {
         id: newId,
@@ -153,15 +163,13 @@ app.post("/register", (req, res) => {
       };
       req.session['user_id'] =  newId;
       res.redirect("/urls");
-    } else {
-      res.status(400).json({Error:"Email already exists"});
     }
   }
 });
 
 // Displays login page if user is not logged in
 app.get("/login", (req, res) => {
-  if (req.session.user_id) {
+  if (userLoggedIn(req)) {
     res.redirect("/urls");
   } else {
     let templateVars = { user: users[req.session.user_id] };
@@ -180,11 +188,13 @@ app.post("/login", (req, res) => {
       res.redirect("/urls");
     } else {
       console.log("Password is incorrect");
-      res.status(403).json({Error:"Email or password is incorrect"});
+      let templateVars = { user: users[req.session.user_id], message: "Error 403: Email or password is incorrect" };
+      res.render("error", templateVars);
     }
   } else {
     console.log("Email is incorrect");
-    res.status(403).json({Error:"Email or password is incorrect"});
+    let templateVars = { user: users[req.session.user_id], message: "Error 403: Email or password is incorrect" };
+    res.render("error", templateVars);
   }
 });
 
