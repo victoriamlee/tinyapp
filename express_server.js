@@ -84,8 +84,12 @@ app.get("/urls/:id", (req, res) => {
   } else if (req.session.user_id !== urlDatabase[req.params.id].userID) {
     res.status(403).json({Error:"Can't access this page!"});
   } else {
-    let templateVars = { user: users[req.session.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
-    res.render("urls_show", templateVars);
+    if (!urlDatabase[req.params.id]) {
+      res.status(403).json({Error: "URL doesn't exist!"});
+    } else {
+      let templateVars = { user: users[req.session.user_id], shortURL: req.params.id, longURL: urlDatabase[req.params.id].longURL };
+      res.render("urls_show", templateVars);
+    }
   }
 });
 
@@ -104,7 +108,7 @@ app.post("/urls/:id", (req, res) => {
 
 //  Redirects to corresponding long URL if the URL exists
 app.get("/u/:id", (req, res) => {
-  if (!urlDatabase[req.params.id].longURL) {
+  if (!urlDatabase[req.params.id]) {
     res.status(403).json({Error: "URL doesn't exist!"});
   } else {
     res.redirect(urlDatabase[req.params.id].longURL);
