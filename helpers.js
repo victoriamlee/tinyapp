@@ -14,14 +14,14 @@ const emailLookUp = (email, users) => {
 };
 
 // Finds urls that are associated with the user
-const urlsForUser = (id, urlDatabase) => {
+const urlsForUser = (id, database) => {
   let filteredData = {};
   if (!id) {
     return false;
   } else {
-    for (let short in urlDatabase) {
-      if (urlDatabase[short].userID === id) {
-        filteredData[short] = urlDatabase[short];
+    for (let short in database) {
+      if (database[short].userID === id) {
+        filteredData[short] = database[short];
       }
     }
   } return filteredData;
@@ -46,5 +46,22 @@ const createURL = (url) => {
   }
 };
 
+// Checks if user is logged in
+const userLoggedIn = (req) => {
+  if (!req.session.user_id || req.session.user_id === undefined) {
+    return false;
+  } else {
+    return true;
+  }
+};
 
-module.exports = { generateRandomString, emailLookUp, urlsForUser, getUserByEmail, createURL };
+// Checks if the user created the URL
+const usersURL = (req, database) => {
+  if (req.session.user_id !== database[req.params.id].userID) {
+    return false;
+  } else {
+    return true;
+  }
+};
+
+module.exports = { generateRandomString, emailLookUp, urlsForUser, getUserByEmail, createURL, userLoggedIn, usersURL };
