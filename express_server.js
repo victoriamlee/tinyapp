@@ -82,9 +82,6 @@ app.get("/urls/:id", (req, res) => {
   if (!userLoggedIn(req)) {
     let templateVars = { user: users[req.session.user_id], message: "Error 403: Please Log In or Register" };
     res.render("error", templateVars);
-  } else if (!usersURL(req, urlDatabase)) {
-    let templateVars = { user: users[req.session.user_id], message: "Error 403: Can't access this page" };
-    res.render("error", templateVars);
   } else {
     if (!urlDatabase[req.params.id]) {
       let templateVars = { user: users[req.session.user_id], message: "Error 403: URL doesn't exist" };
